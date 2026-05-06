@@ -1,3 +1,4 @@
+
 # ShiftSwap — نظام تبديل الشيفتات
 
 نظام كامل لإدارة وتبديل شيفتات الفريق مبني على **Node.js + Express + MongoDB + JWT**.
@@ -367,3 +368,4 @@ mongosh shiftswap --eval "db.swaprequests.find({status:'مفتوح'}).pretty()"
 - [ ] نظام إجازات مدمج
 - [ ] تقارير PDF قابلة للتصدير
 - [ ] تطبيق موبايل (React Native)
+update  
