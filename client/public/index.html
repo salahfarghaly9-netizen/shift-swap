@@ -1,0 +1,1672 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ShiftSwap — نظام تبديل الشيفتات</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0f1117;
+  --bg2: #161b27;
+  --bg3: #1e2535;
+  --bg4: #252d40;
+  --border: rgba(255,255,255,0.07);
+  --border2: rgba(255,255,255,0.13);
+  --text: #e8eaf0;
+  --text2: #8891a8;
+  --text3: #5c6680;
+  --accent: #4f8ef7;
+  --accent2: #3a6fd4;
+  --green: #2ecc71;
+  --green-bg: rgba(46,204,113,0.1);
+  --green-border: rgba(46,204,113,0.25);
+  --amber: #f0a500;
+  --amber-bg: rgba(240,165,0,0.1);
+  --amber-border: rgba(240,165,0,0.25);
+  --red: #e74c3c;
+  --red-bg: rgba(231,76,60,0.1);
+  --red-border: rgba(231,76,60,0.25);
+  --blue: #4f8ef7;
+  --blue-bg: rgba(79,142,247,0.1);
+  --blue-border: rgba(79,142,247,0.25);
+  --radius: 10px;
+  --radius-lg: 14px;
+  --shadow: 0 4px 24px rgba(0,0,0,0.4);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'IBM Plex Sans Arabic', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+/* ─── LAYOUT ─── */
+.shell { display: flex; min-height: 100vh; }
+
+.sidebar {
+  width: 240px; flex-shrink: 0;
+  background: var(--bg2);
+  border-left: 1px solid var(--border);
+  display: flex; flex-direction: column;
+  position: fixed; right: 0; top: 0; bottom: 0;
+  z-index: 100;
+  transition: transform 0.3s;
+}
+
+.main { margin-right: 240px; flex: 1; min-height: 100vh; }
+
+.topbar {
+  height: 60px;
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 24px; position: sticky; top: 0; z-index: 50;
+}
+
+.content { padding: 28px 24px; max-width: 1100px; }
+
+/* ─── SIDEBAR ─── */
+.logo {
+  padding: 20px 20px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.logo-mark {
+  font-size: 20px; font-weight: 600; color: var(--text);
+  display: flex; align-items: center; gap: 8px;
+}
+.logo-mark span { color: var(--accent); }
+.logo-sub { font-size: 11px; color: var(--text3); margin-top: 2px; }
+
+.user-card {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 10px;
+}
+.avatar {
+  width: 36px; height: 36px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 600; flex-shrink: 0;
+}
+.av-accent { background: var(--blue-bg); color: var(--accent); border: 1px solid var(--blue-border); }
+.av-green { background: var(--green-bg); color: var(--green); border: 1px solid var(--green-border); }
+.av-amber { background: var(--amber-bg); color: var(--amber); border: 1px solid var(--amber-border); }
+.av-red { background: var(--red-bg); color: var(--red); border: 1px solid var(--red-border); }
+
+.user-info .name { font-size: 13px; font-weight: 500; }
+.user-info .role { font-size: 11px; color: var(--text3); margin-top: 1px; }
+
+.mode-toggle {
+  margin: 12px 20px;
+  display: flex;
+  background: var(--bg3);
+  border-radius: var(--radius);
+  padding: 3px;
+  border: 1px solid var(--border);
+}
+.mode-btn {
+  flex: 1; padding: 6px; font-size: 11px; font-weight: 500;
+  border: none; background: none; color: var(--text2);
+  border-radius: 7px; cursor: pointer; font-family: inherit;
+  transition: all 0.2s;
+}
+.mode-btn.active { background: var(--bg4); color: var(--text); }
+
+.nav { flex: 1; padding: 8px 12px; overflow-y: auto; }
+.nav-section { margin-bottom: 20px; }
+.nav-label { font-size: 10px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: 0.08em; padding: 0 8px; margin-bottom: 6px; }
+
+.nav-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 10px; border-radius: var(--radius);
+  cursor: pointer; color: var(--text2); font-size: 13px;
+  transition: all 0.15s; position: relative;
+  border: none; background: none; width: 100%; text-align: right;
+  font-family: inherit;
+}
+.nav-item:hover { background: var(--bg3); color: var(--text); }
+.nav-item.active { background: var(--blue-bg); color: var(--accent); }
+.nav-item .icon { width: 16px; text-align: center; flex-shrink: 0; font-size: 15px; }
+.nav-badge {
+  margin-right: auto;
+  background: var(--red); color: white;
+  font-size: 10px; font-weight: 600; width: 18px; height: 18px;
+  border-radius: 50%; display: flex; align-items: center; justify-content: center;
+}
+
+/* ─── TOPBAR ─── */
+.page-title { font-size: 16px; font-weight: 600; }
+.topbar-right { display: flex; align-items: center; gap: 12px; }
+
+.notif-btn {
+  width: 36px; height: 36px; border-radius: var(--radius);
+  background: var(--bg3); border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; position: relative; font-size: 16px;
+  transition: background 0.15s;
+}
+.notif-btn:hover { background: var(--bg4); }
+.notif-count {
+  position: absolute; top: -4px; right: -4px;
+  background: var(--red); color: white;
+  font-size: 9px; font-weight: 700;
+  width: 16px; height: 16px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  border: 2px solid var(--bg2);
+}
+
+/* ─── NOTIFICATIONS PANEL ─── */
+.notif-panel {
+  position: fixed; top: 60px; left: 20px;
+  width: 360px; background: var(--bg2);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  z-index: 200; display: none;
+  animation: slideDown 0.2s ease;
+}
+.notif-panel.open { display: block; }
+@keyframes slideDown { from { opacity:0; transform:translateY(-8px); } to { opacity:1; transform:translateY(0); } }
+
+.notif-header { padding: 14px 16px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+.notif-header span { font-size: 13px; font-weight: 600; }
+.notif-clear { font-size: 11px; color: var(--accent); cursor: pointer; background: none; border: none; font-family: inherit; }
+
+.notif-item {
+  padding: 12px 16px; border-bottom: 1px solid var(--border);
+  cursor: pointer; transition: background 0.15s;
+  display: flex; gap: 10px; align-items: flex-start;
+}
+.notif-item:last-child { border-bottom: none; }
+.notif-item:hover { background: var(--bg3); }
+.notif-item.unread { border-right: 2px solid var(--accent); }
+.notif-dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 5px; flex-shrink: 0; }
+.notif-text { font-size: 12px; color: var(--text); line-height: 1.5; }
+.notif-time { font-size: 11px; color: var(--text3); margin-top: 2px; }
+
+/* ─── TOAST ─── */
+.toast-container {
+  position: fixed; bottom: 24px; left: 24px;
+  display: flex; flex-direction: column; gap: 8px;
+  z-index: 9999;
+}
+.toast {
+  background: var(--bg2); border: 1px solid var(--border2);
+  border-radius: var(--radius); padding: 12px 16px;
+  display: flex; align-items: center; gap: 10px;
+  box-shadow: var(--shadow); font-size: 13px;
+  animation: toastIn 0.3s ease;
+  min-width: 280px;
+}
+@keyframes toastIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+.toast.success { border-right: 3px solid var(--green); }
+.toast.info { border-right: 3px solid var(--accent); }
+.toast.warning { border-right: 3px solid var(--amber); }
+.toast-icon { font-size: 16px; }
+
+/* ─── STATS GRID ─── */
+.stats-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 14px; margin-bottom: 24px; }
+.stat-card {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: 18px 20px;
+  position: relative; overflow: hidden;
+}
+.stat-card::before {
+  content: ''; position: absolute; top: 0; right: 0;
+  width: 3px; height: 100%; border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
+}
+.stat-card.blue::before { background: var(--accent); }
+.stat-card.green::before { background: var(--green); }
+.stat-card.amber::before { background: var(--amber); }
+.stat-card.red::before { background: var(--red); }
+.stat-label { font-size: 11px; color: var(--text3); font-weight: 500; text-transform: uppercase; letter-spacing: 0.06em; }
+.stat-val { font-size: 28px; font-weight: 600; margin: 6px 0 2px; }
+.stat-sub { font-size: 11px; color: var(--text3); }
+.stat-card.blue .stat-val { color: var(--accent); }
+.stat-card.green .stat-val { color: var(--green); }
+.stat-card.amber .stat-val { color: var(--amber); }
+.stat-card.red .stat-val { color: var(--red); }
+
+/* ─── CARDS ─── */
+.card {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); margin-bottom: 16px;
+  overflow: hidden;
+}
+.card-header {
+  padding: 16px 20px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.card-title { font-size: 14px; font-weight: 600; }
+.card-body { padding: 0; }
+
+/* ─── TABLE ─── */
+.tbl { width: 100%; border-collapse: collapse; }
+.tbl th {
+  padding: 11px 16px; text-align: right; font-size: 11px;
+  font-weight: 600; color: var(--text3); text-transform: uppercase;
+  letter-spacing: 0.06em; border-bottom: 1px solid var(--border);
+  background: var(--bg3);
+}
+.tbl td { padding: 13px 16px; border-bottom: 1px solid var(--border); font-size: 13px; vertical-align: middle; }
+.tbl tr:last-child td { border-bottom: none; }
+.tbl tr:hover td { background: rgba(255,255,255,0.02); }
+
+/* ─── BADGES ─── */
+.badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 9px; border-radius: 999px; font-size: 11px; font-weight: 500;
+}
+.badge-green { background: var(--green-bg); color: var(--green); border: 1px solid var(--green-border); }
+.badge-amber { background: var(--amber-bg); color: var(--amber); border: 1px solid var(--amber-border); }
+.badge-red { background: var(--red-bg); color: var(--red); border: 1px solid var(--red-border); }
+.badge-blue { background: var(--blue-bg); color: var(--accent); border: 1px solid var(--blue-border); }
+.badge-gray { background: var(--bg4); color: var(--text2); border: 1px solid var(--border); }
+
+/* ─── BUTTONS ─── */
+.btn {
+  padding: 8px 16px; border-radius: var(--radius);
+  border: 1px solid var(--border2); background: var(--bg3);
+  color: var(--text); font-size: 13px; cursor: pointer;
+  font-family: inherit; transition: all 0.15s;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.btn:hover { background: var(--bg4); }
+.btn-primary { background: var(--accent); border-color: var(--accent); color: white; }
+.btn-primary:hover { background: var(--accent2); }
+.btn-success { background: var(--green-bg); border-color: var(--green-border); color: var(--green); }
+.btn-success:hover { background: rgba(46,204,113,0.18); }
+.btn-danger { background: var(--red-bg); border-color: var(--red-border); color: var(--red); }
+.btn-danger:hover { background: rgba(231,76,60,0.18); }
+.btn-sm { padding: 5px 11px; font-size: 12px; }
+.btn-xs { padding: 3px 8px; font-size: 11px; }
+
+/* ─── FILTERS ─── */
+.filter-row { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
+.filter-chip {
+  padding: 5px 13px; border-radius: 999px; font-size: 12px; font-weight: 500;
+  border: 1px solid var(--border); background: var(--bg3);
+  color: var(--text2); cursor: pointer; font-family: inherit; transition: all 0.15s;
+}
+.filter-chip:hover { border-color: var(--border2); color: var(--text); }
+.filter-chip.on { background: var(--blue-bg); border-color: var(--blue-border); color: var(--accent); }
+.search-box {
+  margin-right: auto; display: flex; align-items: center; gap: 8px;
+  background: var(--bg3); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 5px 12px; min-width: 180px;
+}
+.search-box input {
+  background: none; border: none; color: var(--text); font-size: 12px;
+  font-family: inherit; outline: none; width: 100%;
+}
+.search-box input::placeholder { color: var(--text3); }
+
+/* ─── REQUEST ROWS ─── */
+.req-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 20px; border-bottom: 1px solid var(--border);
+  transition: background 0.15s;
+}
+.req-row:last-child { border-bottom: none; }
+.req-row:hover { background: rgba(255,255,255,0.015); }
+.req-info { flex: 1; min-width: 0; }
+.req-name { font-size: 13px; font-weight: 500; margin-bottom: 2px; }
+.req-detail { font-size: 12px; color: var(--text2); }
+.req-note {
+  margin-top: 6px; font-size: 12px; color: var(--text2);
+  background: var(--bg3); padding: 7px 10px; border-radius: 8px;
+  border-right: 2px solid var(--border2);
+}
+.req-actions { display: flex; gap: 6px; flex-shrink: 0; }
+.req-urgency { display: flex; align-items: center; gap: 4px; }
+
+/* ─── CALENDAR ─── */
+.cal-grid {
+  display: grid; grid-template-columns: 70px repeat(7,1fr);
+  gap: 2px; padding: 16px;
+}
+.cal-head { font-size: 11px; color: var(--text3); text-align: center; padding: 8px 4px; font-weight: 500; }
+.cal-time { font-size: 10px; color: var(--text3); display: flex; align-items: center; }
+.cal-cell {
+  border-radius: 6px; min-height: 38px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 500; cursor: pointer;
+  transition: all 0.15s; position: relative;
+  border: 1px solid transparent;
+}
+.cal-cell:hover { filter: brightness(1.2); }
+.cal-mine { background: var(--blue-bg); color: var(--accent); border-color: var(--blue-border); }
+.cal-free { background: var(--green-bg); color: var(--green); border-color: var(--green-border); }
+.cal-needed { background: var(--amber-bg); color: var(--amber); border-color: var(--amber-border); }
+.cal-pending { background: var(--red-bg); color: var(--red); border-color: var(--red-border); }
+.cal-empty { background: var(--bg3); border-color: transparent; }
+.cal-legend { display: flex; gap: 16px; padding: 0 16px 14px; }
+.cal-legend-item { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text2); }
+.cal-legend-dot { width: 10px; height: 10px; border-radius: 3px; }
+
+/* ─── FORM ─── */
+.form-card {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: 24px;
+}
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.form-group { margin-bottom: 16px; }
+.form-label { font-size: 12px; font-weight: 500; color: var(--text2); margin-bottom: 6px; display: block; }
+.form-input, .form-select, .form-textarea {
+  width: 100%; padding: 9px 12px; font-size: 13px;
+  background: var(--bg3); border: 1px solid var(--border);
+  border-radius: var(--radius); color: var(--text); font-family: inherit;
+  transition: border-color 0.15s; outline: none;
+}
+.form-input:focus, .form-select:focus, .form-textarea:focus { border-color: var(--accent); }
+.form-select option { background: var(--bg3); }
+.form-textarea { min-height: 80px; resize: vertical; }
+.form-hint { font-size: 11px; color: var(--text3); margin-top: 4px; }
+
+/* ─── TIMELINE ─── */
+.timeline { padding: 20px; }
+.tl-item { display: flex; gap: 14px; margin-bottom: 20px; }
+.tl-left { display: flex; flex-direction: column; align-items: center; }
+.tl-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; margin-top: 4px; }
+.tl-line { flex: 1; width: 1px; background: var(--border); margin-top: 4px; }
+.tl-body { flex: 1; padding-bottom: 4px; }
+.tl-title { font-size: 13px; font-weight: 500; }
+.tl-meta { font-size: 11px; color: var(--text3); margin-top: 3px; }
+
+/* ─── MANAGER DASHBOARD ─── */
+.approval-row {
+  display: flex; align-items: flex-start; gap: 14px;
+  padding: 16px 20px; border-bottom: 1px solid var(--border);
+}
+.approval-row:last-child { border-bottom: none; }
+.approval-body { flex: 1; }
+.approval-parties { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
+.arrow-icon { color: var(--text3); font-size: 14px; }
+.approval-shift { font-size: 12px; color: var(--text2); margin-bottom: 6px; }
+.approval-actions { display: flex; gap: 8px; align-items: center; margin-top: 10px; }
+.urgency-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 6px; }
+.urgency-high { background: var(--red); }
+.urgency-med { background: var(--amber); }
+.urgency-low { background: var(--green); }
+
+/* ─── MODAL ─── */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+  display: none; align-items: center; justify-content: center;
+  z-index: 500; backdrop-filter: blur(4px);
+}
+.modal-overlay.open { display: flex; }
+.modal {
+  background: var(--bg2); border: 1px solid var(--border2);
+  border-radius: var(--radius-lg); width: 500px; max-width: 95vw;
+  box-shadow: var(--shadow); animation: modalIn 0.2s ease;
+}
+@keyframes modalIn { from { opacity:0; transform:scale(0.97); } to { opacity:1; transform:scale(1); } }
+.modal-header { padding: 18px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+.modal-header h3 { font-size: 15px; font-weight: 600; }
+.modal-close { background: none; border: none; color: var(--text2); cursor: pointer; font-size: 20px; line-height: 1; }
+.modal-body { padding: 20px; }
+.modal-footer { padding: 14px 20px; border-top: 1px solid var(--border); display: flex; gap: 8px; justify-content: flex-end; }
+
+/* ─── TABS ─── */
+.page-tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 20px; }
+.page-tab {
+  padding: 10px 18px; font-size: 13px; cursor: pointer;
+  border: none; background: none; color: var(--text2); font-family: inherit;
+  border-bottom: 2px solid transparent; margin-bottom: -1px;
+  transition: all 0.15s; font-weight: 500;
+}
+.page-tab:hover { color: var(--text); }
+.page-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+/* ─── SECTIONS ─── */
+.page-section { display: none; }
+.page-section.active { display: block; }
+
+/* ─── RESPONSIVE ─── */
+@media (max-width: 768px) {
+  .sidebar { transform: translateX(100%); }
+  .sidebar.open { transform: translateX(0); }
+  .main { margin-right: 0; }
+  .stats-grid { grid-template-columns: 1fr 1fr; }
+  .form-grid { grid-template-columns: 1fr; }
+}
+
+/* ─── SCROLLBAR ─── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--bg4); border-radius: 3px; }
+
+/* ─── TEAM LIST ─── */
+.team-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 20px; border-bottom: 1px solid var(--border);
+}
+.team-row:last-child { border-bottom: none; }
+.team-info { flex: 1; }
+.team-name { font-size: 13px; font-weight: 500; }
+.team-meta { font-size: 11px; color: var(--text3); }
+.team-shifts { font-size: 12px; color: var(--text2); text-align: center; min-width: 80px; }
+.online-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); box-shadow: 0 0 6px var(--green); }
+.offline-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--text3); }
+
+.empty-state { padding: 40px; text-align: center; color: var(--text3); }
+.empty-icon { font-size: 32px; margin-bottom: 10px; }
+
+.section-title { font-size: 22px; font-weight: 600; margin-bottom: 4px; }
+.section-sub { font-size: 13px; color: var(--text3); margin-bottom: 24px; }
+</style>
+</head>
+<body>
+
+<div class="shell">
+<!-- ─── SIDEBAR ─── -->
+<aside class="sidebar" id="sidebar">
+  <div class="logo">
+    <div class="logo-mark">⇄ <span>Shift</span>Swap</div>
+    <div class="logo-sub">فريق العمليات · 107 أعضاء</div>
+  </div>
+
+  <div class="user-card">
+    <div class="avatar av-accent">أح</div>
+    <div class="user-info">
+      <div class="name" id="sidebar-name">أحمد محمد</div>
+      <div class="role" id="sidebar-role">موظف · شيفت صبح</div>
+    </div>
+  </div>
+
+  <div class="mode-toggle">
+    <button class="mode-btn active" onclick="setMode('employee')" id="mode-emp">موظف</button>
+    <button class="mode-btn" onclick="setMode('manager')" id="mode-mgr">مدير</button>
+  </div>
+
+  <nav class="nav" id="main-nav">
+    <div class="nav-section" id="emp-nav">
+      <div class="nav-label">الرئيسية</div>
+      <button class="nav-item active" onclick="showPage('dashboard')" id="nav-dashboard">
+        <span class="icon">⊞</span> لوحة التحكم
+      </button>
+      <button class="nav-item" onclick="showPage('myshifts')" id="nav-myshifts">
+        <span class="icon">📅</span> شيفتاتي
+      </button>
+      <button class="nav-item" onclick="showPage('requests')" id="nav-requests">
+        <span class="icon">⇄</span> طلبات التبديل
+        <span class="nav-badge" id="nav-badge-req">5</span>
+      </button>
+      <button class="nav-item" onclick="showPage('calendar')" id="nav-calendar">
+        <span class="icon">🗓</span> التقويم
+      </button>
+      <div class="nav-label" style="margin-top:12px;">إجراءات</div>
+      <button class="nav-item" onclick="showPage('post')" id="nav-post">
+        <span class="icon">＋</span> نشر طلب تبديل
+      </button>
+      <button class="nav-item" onclick="showPage('history')" id="nav-history">
+        <span class="icon">◷</span> السجل
+      </button>
+    </div>
+
+    <div class="nav-section" id="mgr-nav" style="display:none;">
+      <div class="nav-label">إدارة</div>
+      <button class="nav-item" onclick="showPage('mgr-dashboard')" id="nav-mgr-dashboard">
+        <span class="icon">⊞</span> لوحة المدير
+      </button>
+      <button class="nav-item" onclick="showPage('approvals')" id="nav-approvals">
+        <span class="icon">✓</span> الموافقات
+        <span class="nav-badge" id="nav-badge-appr">3</span>
+      </button>
+      <button class="nav-item" onclick="showPage('team')" id="nav-team">
+        <span class="icon">👥</span> الفريق
+      </button>
+      <button class="nav-item" onclick="showPage('mgr-calendar')" id="nav-mgr-calendar">
+        <span class="icon">🗓</span> التقويم الكامل
+      </button>
+      <button class="nav-item" onclick="showPage('reports')" id="nav-reports">
+        <span class="icon">📊</span> التقارير
+      </button>
+    </div>
+  </nav>
+</aside>
+
+<!-- ─── MAIN ─── -->
+<main class="main">
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <button class="btn btn-sm" onclick="toggleSidebar()" style="display:none;padding:6px 10px;" id="menu-btn">☰</button>
+      <div class="page-title" id="page-title">لوحة التحكم</div>
+    </div>
+    <div class="topbar-right">
+      <div style="font-size:12px;color:var(--text3);" id="current-time"></div>
+      <div class="notif-btn" onclick="toggleNotif()" id="notif-btn">
+        🔔
+        <div class="notif-count" id="notif-count">4</div>
+      </div>
+    </div>
+  </header>
+
+  <!-- NOTIFICATIONS PANEL -->
+  <div class="notif-panel" id="notif-panel">
+    <div class="notif-header">
+      <span>الإشعارات</span>
+      <button class="notif-clear" onclick="clearNotifs()">مسح الكل</button>
+    </div>
+    <div id="notif-list">
+      <div class="notif-item unread" onclick="goToRequests()">
+        <div class="notif-dot" style="background:var(--red)"></div>
+        <div>
+          <div class="notif-text">نور حسام طلب تغطية عاجلة لشيفت ليل الجمعة</div>
+          <div class="notif-time">منذ 5 دقائق</div>
+        </div>
+      </div>
+      <div class="notif-item unread" onclick="goToRequests()">
+        <div class="notif-dot" style="background:var(--accent)"></div>
+        <div>
+          <div class="notif-text">سارة محمود قبلت طلب التبديل بتاعك يوم الأربعاء</div>
+          <div class="notif-time">منذ 20 دقيقة</div>
+        </div>
+      </div>
+      <div class="notif-item unread" onclick="goToRequests()">
+        <div class="notif-dot" style="background:var(--green)"></div>
+        <div>
+          <div class="notif-text">المدير وافق على تبديل الشيفت بتاعك الأسبوع الجاي</div>
+          <div class="notif-time">منذ ساعة</div>
+        </div>
+      </div>
+      <div class="notif-item" onclick="goToRequests()">
+        <div class="notif-dot" style="background:var(--text3)"></div>
+        <div>
+          <div class="notif-text">كريم رضا نشر طلب جديد للتبديل يوم السبت</div>
+          <div class="notif-time">منذ 3 ساعات</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- ══════════ EMPLOYEE PAGES ══════════ -->
+
+    <!-- DASHBOARD -->
+    <div class="page-section active" id="page-dashboard">
+      <div class="section-title">أهلًا، أحمد 👋</div>
+      <div class="section-sub">الثلاثاء، 5 مايو 2026 · شيفت الصبح — 08:00 لحد 16:00</div>
+
+      <div class="stats-grid">
+        <div class="stat-card blue">
+          <div class="stat-label">شيفتاتي الأسبوع</div>
+          <div class="stat-val">5</div>
+          <div class="stat-sub">40 ساعة إجمالي</div>
+        </div>
+        <div class="stat-card amber">
+          <div class="stat-label">طلبات معلقة</div>
+          <div class="stat-val">2</div>
+          <div class="stat-sub">محتاجين موافقة</div>
+        </div>
+        <div class="stat-card green">
+          <div class="stat-label">تبديلات مكتملة</div>
+          <div class="stat-val">7</div>
+          <div class="stat-sub">هذا الشهر</div>
+        </div>
+        <div class="stat-card red">
+          <div class="stat-label">طلبات للمراجعة</div>
+          <div class="stat-val">5</div>
+          <div class="stat-sub">من الفريق</div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">شيفتاتك الأسبوع</div>
+            <button class="btn btn-sm" onclick="showPage('myshifts')">كل الشيفتات</button>
+          </div>
+          <div class="card-body">
+            <div class="req-row">
+              <div class="req-info">
+                <div class="req-name">الإثنين — 08:00 إلى 16:00</div>
+                <div class="req-detail">شيفت صبح · قسم العمليات</div>
+              </div>
+              <span class="badge badge-green">مؤكد</span>
+            </div>
+            <div class="req-row">
+              <div class="req-info">
+                <div class="req-name">الثلاثاء — 08:00 إلى 16:00</div>
+                <div class="req-detail">شيفت صبح · قسم العمليات</div>
+              </div>
+              <span class="badge badge-green">مؤكد</span>
+            </div>
+            <div class="req-row" style="background:rgba(240,165,0,0.04);">
+              <div class="req-info">
+                <div class="req-name">الأربعاء — 16:00 إلى 00:00</div>
+                <div class="req-detail">شيفت مسا · قسم الدعم</div>
+              </div>
+              <div style="display:flex;gap:6px;align-items:center;">
+                <span class="badge badge-amber">محتاج تغطية</span>
+                <button class="btn btn-sm btn-primary" onclick="showPage('post')">عرض</button>
+              </div>
+            </div>
+            <div class="req-row">
+              <div class="req-info">
+                <div class="req-name">الخميس — 08:00 إلى 12:00</div>
+                <div class="req-detail">نصف شيفت · قسم العمليات</div>
+              </div>
+              <span class="badge badge-green">مؤكد</span>
+            </div>
+            <div class="req-row">
+              <div class="req-info">
+                <div class="req-name">الجمعة — 00:00 إلى 08:00</div>
+                <div class="req-detail">شيفت ليل · قسم الدعم</div>
+              </div>
+              <span class="badge badge-green">مؤكد</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">طلبات التبديل الأحدث</div>
+            <button class="btn btn-sm" onclick="showPage('requests')">عرض الكل</button>
+          </div>
+          <div class="card-body">
+            <div class="req-row">
+              <div class="urgency-dot urgency-high"></div>
+              <div class="req-info">
+                <div class="req-name">نور حسام — شيفت ليل الجمعة</div>
+                <div class="req-detail">00:00 – 08:00 · ظرف صحي عاجل</div>
+              </div>
+              <span class="badge badge-red">عاجل</span>
+            </div>
+            <div class="req-row">
+              <div class="urgency-dot urgency-med"></div>
+              <div class="req-info">
+                <div class="req-name">سارة محمود — شيفت صبح الأربعاء</div>
+                <div class="req-detail">08:00 – 16:00 · إجازة عائلية</div>
+              </div>
+              <span class="badge badge-blue">كامل</span>
+            </div>
+            <div class="req-row">
+              <div class="urgency-dot urgency-low"></div>
+              <div class="req-info">
+                <div class="req-name">كريم رضا — نصف شيفت السبت</div>
+                <div class="req-detail">12:00 – 16:00 · موعد شخصي</div>
+              </div>
+              <span class="badge badge-amber">جزئي</span>
+            </div>
+            <div class="req-row">
+              <div class="urgency-dot urgency-low"></div>
+              <div class="req-info">
+                <div class="req-name">هبة منصور — يوم الأحد كامل</div>
+                <div class="req-detail">سفر · إشعار مبكر</div>
+              </div>
+              <span class="badge badge-gray">مبكر</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MY SHIFTS -->
+    <div class="page-section" id="page-myshifts">
+      <div class="section-title">شيفتاتي</div>
+      <div class="section-sub">جدولك الشخصي وأوقاتك الفارغة</div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">الأسبوع الحالي — 5 إلى 11 مايو 2026</div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-sm">◀ الأسبوع السابق</button>
+            <button class="btn btn-sm">الأسبوع التالي ▶</button>
+          </div>
+        </div>
+        <table class="tbl">
+          <thead>
+            <tr>
+              <th>اليوم</th><th>الوقت</th><th>القسم</th><th>النوع</th><th>الحالة</th><th>إجراء</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>الإثنين 5/5</strong></td>
+              <td>08:00 – 16:00</td>
+              <td>العمليات</td>
+              <td><span class="badge badge-blue">صبح</span></td>
+              <td><span class="badge badge-green">مؤكد</span></td>
+              <td><button class="btn btn-xs" onclick="openPostModal('الإثنين 5/5','08:00 – 16:00')">عرض تبديل</button></td>
+            </tr>
+            <tr>
+              <td><strong>الثلاثاء 6/5</strong></td>
+              <td>08:00 – 16:00</td>
+              <td>العمليات</td>
+              <td><span class="badge badge-blue">صبح</span></td>
+              <td><span class="badge badge-green">مؤكد</span></td>
+              <td><button class="btn btn-xs" onclick="openPostModal('الثلاثاء 6/5','08:00 – 16:00')">عرض تبديل</button></td>
+            </tr>
+            <tr style="background:rgba(240,165,0,0.03);">
+              <td><strong>الأربعاء 7/5</strong></td>
+              <td>16:00 – 00:00</td>
+              <td>الدعم</td>
+              <td><span class="badge badge-amber">مسا</span></td>
+              <td><span class="badge badge-amber">محتاج تغطية</span></td>
+              <td><button class="btn btn-xs btn-primary" onclick="showPage('post')">عرض الآن</button></td>
+            </tr>
+            <tr>
+              <td><strong>الخميس 8/5</strong></td>
+              <td>08:00 – 12:00</td>
+              <td>العمليات</td>
+              <td><span class="badge badge-gray">نصف شيفت</span></td>
+              <td><span class="badge badge-green">مؤكد</span></td>
+              <td><button class="btn btn-xs" onclick="openPostModal('الخميس 8/5','08:00 – 12:00')">عرض تبديل</button></td>
+            </tr>
+            <tr>
+              <td><strong>الجمعة 9/5</strong></td>
+              <td>00:00 – 08:00</td>
+              <td>الدعم</td>
+              <td><span class="badge badge-gray">ليل</span></td>
+              <td><span class="badge badge-green">مؤكد</span></td>
+              <td><button class="btn btn-xs" onclick="openPostModal('الجمعة 9/5','00:00 – 08:00')">عرض تبديل</button></td>
+            </tr>
+            <tr style="background:rgba(46,204,113,0.03);">
+              <td><strong>السبت 10/5</strong></td>
+              <td>—</td>
+              <td>—</td>
+              <td>—</td>
+              <td><span class="badge badge-green">فارغ</span></td>
+              <td><button class="btn btn-xs btn-success" onclick="showPage('post')">أعلن عن توافر</button></td>
+            </tr>
+            <tr style="background:rgba(46,204,113,0.03);">
+              <td><strong>الأحد 11/5</strong></td>
+              <td>—</td>
+              <td>—</td>
+              <td>—</td>
+              <td><span class="badge badge-green">فارغ</span></td>
+              <td><button class="btn btn-xs btn-success" onclick="showPage('post')">أعلن عن توافر</button></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- REQUESTS -->
+    <div class="page-section" id="page-requests">
+      <div class="section-title">طلبات التبديل</div>
+      <div class="section-sub">طلبات الزملاء المتاحة للقبول</div>
+
+      <div class="filter-row">
+        <button class="filter-chip on" onclick="toggleChip(this)">الكل (5)</button>
+        <button class="filter-chip" onclick="toggleChip(this)">عاجل</button>
+        <button class="filter-chip" onclick="toggleChip(this)">شيفت صبح</button>
+        <button class="filter-chip" onclick="toggleChip(this)">شيفت مسا</button>
+        <button class="filter-chip" onclick="toggleChip(this)">شيفت ليل</button>
+        <button class="filter-chip" onclick="toggleChip(this)">نصف شيفت</button>
+        <div class="search-box">
+          🔍 <input placeholder="ابحث باسم أو وقت...">
+        </div>
+      </div>
+
+      <div class="card">
+        <div id="requests-list">
+          <div class="approval-row">
+            <div class="urgency-dot urgency-high" style="margin-top:8px;"></div>
+            <div class="avatar av-accent" style="width:38px;height:38px;">نح</div>
+            <div class="approval-body">
+              <div class="approval-parties">
+                <strong>نور حسام</strong>
+                <span class="badge badge-red">عاجل</span>
+                <span class="badge badge-blue">شيفت كامل</span>
+              </div>
+              <div class="approval-shift">📅 الجمعة 9 مايو · 00:00 – 08:00 · شيفت ليل · الدعم الفني</div>
+              <div class="req-note">ظرف صحي مفاجئ، محتاج تغطية فورية. متاح يغطيك أي شيفت صبح الأسبوع الجاي.</div>
+              <div class="approval-actions">
+                <button class="btn btn-success btn-sm" onclick="acceptSwap('نور حسام','الجمعة 00:00-08:00')">✓ قبول التبديل</button>
+                <button class="btn btn-sm" onclick="openDetailModal('نور حسام')">تفاصيل أكتر</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="approval-row">
+            <div class="urgency-dot urgency-med" style="margin-top:8px;"></div>
+            <div class="avatar av-green" style="width:38px;height:38px;">سم</div>
+            <div class="approval-body">
+              <div class="approval-parties">
+                <strong>سارة محمود</strong>
+                <span class="badge badge-blue">شيفت كامل</span>
+              </div>
+              <div class="approval-shift">📅 الأربعاء 14 مايو · 08:00 – 16:00 · شيفت صبح · العمليات</div>
+              <div class="req-note">إجازة عائلية مسبقة. متاحة تغطيك الثلاثاء مسا أو الخميس كامل.</div>
+              <div class="approval-actions">
+                <button class="btn btn-success btn-sm" onclick="acceptSwap('سارة محمود','الأربعاء 08:00-16:00')">✓ قبول</button>
+                <button class="btn btn-sm" onclick="openDetailModal('سارة محمود')">تفاصيل</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="approval-row">
+            <div class="urgency-dot urgency-med" style="margin-top:8px;"></div>
+            <div class="avatar av-amber" style="width:38px;height:38px;">مع</div>
+            <div class="approval-body">
+              <div class="approval-parties">
+                <strong>محمد علي</strong>
+                <span class="badge badge-amber">جزء من الشيفت</span>
+              </div>
+              <div class="approval-shift">📅 الخميس 15 مايو · 16:00 – 20:00 · جزء من شيفت مسا · الدعم</div>
+              <div class="req-note">محتاج يغادر الساعة 4 بس يقدر يكمل من 8 المساء.</div>
+              <div class="approval-actions">
+                <button class="btn btn-success btn-sm" onclick="acceptSwap('محمد علي','الخميس 16:00-20:00')">✓ قبول</button>
+                <button class="btn btn-sm" onclick="openDetailModal('محمد علي')">تفاصيل</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="approval-row">
+            <div class="urgency-dot urgency-low" style="margin-top:8px;"></div>
+            <div class="avatar av-red" style="width:38px;height:38px;">كر</div>
+            <div class="approval-body">
+              <div class="approval-parties">
+                <strong>كريم رضا</strong>
+                <span class="badge badge-gray">جزئي</span>
+              </div>
+              <div class="approval-shift">📅 السبت 17 مايو · 12:00 – 16:00 · نصف شيفت</div>
+              <div class="req-note">موعد شخصي. ممكن يغطيك صبح السبت بدال المسا.</div>
+              <div class="approval-actions">
+                <button class="btn btn-success btn-sm" onclick="acceptSwap('كريم رضا','السبت 12:00-16:00')">✓ قبول</button>
+                <button class="btn btn-sm">تفاصيل</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="approval-row">
+            <div class="urgency-dot urgency-low" style="margin-top:8px;"></div>
+            <div class="avatar av-accent" style="width:38px;height:38px;">هم</div>
+            <div class="approval-body">
+              <div class="approval-parties">
+                <strong>هبة منصور</strong>
+                <span class="badge badge-gray">إشعار مبكر</span>
+                <span class="badge badge-blue">يوم كامل</span>
+              </div>
+              <div class="approval-shift">📅 الأحد 18 مايو · 08:00 – 00:00 · يوم كامل</div>
+              <div class="req-note">سفر 3 أيام. مرنة في أوقات التبديل.</div>
+              <div class="approval-actions">
+                <button class="btn btn-success btn-sm" onclick="acceptSwap('هبة منصور','الأحد كامل')">✓ قبول</button>
+                <button class="btn btn-sm">تفاصيل</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CALENDAR -->
+    <div class="page-section" id="page-calendar">
+      <div class="section-title">التقويم</div>
+      <div class="section-sub">عرض بصري لشيفتاتك وأوقاتك الفارغة</div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">مايو 2026 — أسبوع 5 إلى 11</div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-sm">◀</button>
+            <button class="btn btn-sm">▶</button>
+          </div>
+        </div>
+        <div class="cal-legend">
+          <div class="cal-legend-item"><div class="cal-legend-dot" style="background:var(--blue-bg);border:1px solid var(--blue-border);"></div>شيفتاتي</div>
+          <div class="cal-legend-item"><div class="cal-legend-dot" style="background:var(--green-bg);border:1px solid var(--green-border);"></div>وقت فارغ</div>
+          <div class="cal-legend-item"><div class="cal-legend-dot" style="background:var(--amber-bg);border:1px solid var(--amber-border);"></div>محتاج تغطية</div>
+          <div class="cal-legend-item"><div class="cal-legend-dot" style="background:var(--red-bg);border:1px solid var(--red-border);"></div>طلب معلق</div>
+        </div>
+        <div class="cal-grid">
+          <div class="cal-head"></div>
+          <div class="cal-head">إث<br><small style="color:var(--accent)">5</small></div>
+          <div class="cal-head">ثل<br><small>6</small></div>
+          <div class="cal-head">أر<br><small>7</small></div>
+          <div class="cal-head">خم<br><small>8</small></div>
+          <div class="cal-head">جم<br><small>9</small></div>
+          <div class="cal-head">سب<br><small>10</small></div>
+          <div class="cal-head">أح<br><small>11</small></div>
+
+          <div class="cal-time">00–08</div>
+          <div class="cal-cell cal-empty"></div>
+          <div class="cal-cell cal-empty"></div>
+          <div class="cal-cell cal-free">فارغ</div>
+          <div class="cal-cell cal-empty"></div>
+          <div class="cal-cell cal-mine">أنا</div>
+          <div class="cal-cell cal-free">فارغ</div>
+          <div class="cal-cell cal-free">فارغ</div>
+
+          <div class="cal-time">08–12</div>
+          <div class="cal-cell cal-mine">أنا</div>
+          <div class="cal-cell cal-mine">أنا</div>
+          <div class="cal-cell cal-free">فارغ</div>
+          <div class="cal-cell cal-mine">أنا</div>
+          <div class="cal-cell cal-empty"></div>
+          <div class="cal-cell cal-free">فارغ</div>
+          <div class="cal-cell cal-free">فارغ</div>
+
+          <div class="cal-time">12–16</div>
+          <div class="cal-cell cal-mine">أنا</div>
+          <div class="cal-cell cal-mine">أنا</div>
+          <div class="cal-cell cal-free">فارغ</div>
+          <div class="cal-cell cal-empty"></div>
+          <div class="cal-cell cal-empty"></div>
+          <div class="cal-cell cal-free">فارغ</div>
+          <div class="cal-cell cal-free">فارغ</div>
+
+          <div class="cal-time">16–00</div>
+          <div class="cal-cell cal-empty"></div>
+          <div class="cal-cell cal-free">فارغ</div>
+          <div class="cal-cell cal-needed">محتاج</div>
+          <div class="cal-cell cal-empty"></div>
+          <div class="cal-cell cal-empty"></div>
+          <div class="cal-cell cal-free">فارغ</div>
+          <div class="cal-cell cal-free">فارغ</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- POST REQUEST -->
+    <div class="page-section" id="page-post">
+      <div class="section-title">نشر طلب تبديل</div>
+      <div class="section-sub">اعرض شيفتك أو أعلن عن وقت فارغ للفريق كله</div>
+
+      <div class="form-card">
+        <div class="form-group">
+          <label class="form-label">نوع الطلب</label>
+          <select class="form-select" id="post-type" onchange="updatePostForm()">
+            <option value="full">عرض شيفت كامل للتبديل</option>
+            <option value="partial">عرض جزء من الشيفت</option>
+            <option value="free">الإعلان عن وقت فارغ</option>
+            <option value="need">محتاج حد يشتغل مكاني</option>
+          </select>
+        </div>
+
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">التاريخ</label>
+            <input type="date" class="form-input" value="2026-05-13">
+          </div>
+          <div class="form-group">
+            <label class="form-label">القسم</label>
+            <select class="form-select">
+              <option>العمليات</option>
+              <option>الدعم الفني</option>
+              <option>المبيعات</option>
+              <option>الإدارة</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-grid" id="shift-times">
+          <div class="form-group">
+            <label class="form-label">من الساعة</label>
+            <input type="time" class="form-input" value="08:00">
+          </div>
+          <div class="form-group">
+            <label class="form-label">لحد الساعة</label>
+            <input type="time" class="form-input" value="16:00">
+          </div>
+        </div>
+
+        <div id="partial-section" style="display:none;">
+          <div style="font-size:12px;font-weight:600;color:var(--text3);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.06em;">الجزء المطلوب تغطيته</div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="form-label">من</label>
+              <input type="time" class="form-input" value="08:00">
+            </div>
+            <div class="form-group">
+              <label class="form-label">لحد</label>
+              <input type="time" class="form-input" value="12:00">
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">درجة الأولوية</label>
+          <select class="form-select" id="post-urgency">
+            <option value="low">عادية — في وقتك</option>
+            <option value="med">متوسطة — خلال يومين</option>
+            <option value="high">عاجلة — محتاج رد سريع</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">السبب</label>
+          <textarea class="form-textarea" placeholder="مثلًا: ظرف عائلي، موعد طبي، سفر..." id="post-reason"></textarea>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">الأوقات الفارغة عندك</label>
+          <input type="text" class="form-input" placeholder="مثلًا: الثلاثاء مسا، الخميس كامل">
+          <div class="form-hint">حدد الأوقات اللي تقدر تشتغل فيها بدل اللي يغطيك</div>
+        </div>
+
+        <div style="display:flex;gap:10px;">
+          <button class="btn btn-primary" onclick="submitPost()">📢 نشر الطلب للفريق</button>
+          <button class="btn" onclick="showPage('dashboard')">إلغاء</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- HISTORY -->
+    <div class="page-section" id="page-history">
+      <div class="section-title">سجل التبديلات</div>
+      <div class="section-sub">كل التبديلات اللي حصلت معك</div>
+
+      <div class="card">
+        <div class="card-body">
+          <div class="timeline" id="history-list">
+            <div class="tl-item">
+              <div class="tl-left"><div class="tl-dot" style="background:var(--green)"></div><div class="tl-line"></div></div>
+              <div class="tl-body">
+                <div class="tl-title">غطيت شيفت <strong>ياسمين عمر</strong> — الخميس 08:00–16:00 <span class="badge badge-green" style="margin-right:6px;">مكتمل</span></div>
+                <div class="tl-meta">2 مايو 2026 · وافق عليه المدير</div>
+              </div>
+            </div>
+            <div class="tl-item">
+              <div class="tl-left"><div class="tl-dot" style="background:var(--green)"></div><div class="tl-line"></div></div>
+              <div class="tl-body">
+                <div class="tl-title">غطاك <strong>عمر فاروق</strong> في شيفت الأربعاء 16:00–00:00 <span class="badge badge-green" style="margin-right:6px;">مكتمل</span></div>
+                <div class="tl-meta">28 أبريل 2026 · وافق عليه المدير</div>
+              </div>
+            </div>
+            <div class="tl-item">
+              <div class="tl-left"><div class="tl-dot" style="background:var(--amber)"></div><div class="tl-line"></div></div>
+              <div class="tl-body">
+                <div class="tl-title">طلبت تغطية شيفت الجمعة ليل → قبله <strong>أحمد سامي</strong> <span class="badge badge-green" style="margin-right:6px;">مكتمل</span></div>
+                <div class="tl-meta">25 أبريل 2026</div>
+              </div>
+            </div>
+            <div class="tl-item">
+              <div class="tl-left"><div class="tl-dot" style="background:var(--red)"></div><div class="tl-line"></div></div>
+              <div class="tl-body">
+                <div class="tl-title">طلب تغطية الإثنين صبح — لم يتم قبوله <span class="badge badge-red" style="margin-right:6px;">منتهي</span></div>
+                <div class="tl-meta">20 أبريل 2026</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════ MANAGER PAGES ══════════ -->
+
+    <!-- MANAGER DASHBOARD -->
+    <div class="page-section" id="page-mgr-dashboard">
+      <div class="section-title">لوحة المدير</div>
+      <div class="section-sub">نظرة شاملة على الفريق والشيفتات</div>
+
+      <div class="stats-grid">
+        <div class="stat-card blue">
+          <div class="stat-label">إجمالي الفريق</div>
+          <div class="stat-val">107</div>
+          <div class="stat-sub">موظف نشط</div>
+        </div>
+        <div class="stat-card amber">
+          <div class="stat-label">طلبات للموافقة</div>
+          <div class="stat-val">3</div>
+          <div class="stat-sub">تحتاج مراجعة</div>
+        </div>
+        <div class="stat-card red">
+          <div class="stat-label">شيفتات غير مغطاة</div>
+          <div class="stat-val">2</div>
+          <div class="stat-sub">اليوم والغد</div>
+        </div>
+        <div class="stat-card green">
+          <div class="stat-label">تبديلات الشهر</div>
+          <div class="stat-val">34</div>
+          <div class="stat-sub">مكتملة بنجاح</div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:2fr 1fr;gap:16px;">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">طلبات تحتاج موافقة عاجلة</div>
+            <button class="btn btn-sm" onclick="showPage('approvals')">عرض الكل</button>
+          </div>
+          <div class="card-body">
+            <div class="approval-row">
+              <div class="urgency-dot urgency-high" style="margin-top:8px;"></div>
+              <div class="avatar av-accent" style="width:34px;height:34px;font-size:11px;">نح</div>
+              <div class="approval-body">
+                <div class="approval-parties">
+                  <strong>نور حسام</strong> <span class="arrow-icon">⇄</span> <strong>رامي سليم</strong>
+                  <span class="badge badge-red">عاجل</span>
+                </div>
+                <div class="approval-shift">الجمعة 9/5 · شيفت ليل 00:00–08:00</div>
+                <div class="approval-actions">
+                  <button class="btn btn-success btn-sm" onclick="managerApprove('نور حسام ↔ رامي سليم')">✓ موافق</button>
+                  <button class="btn btn-danger btn-sm" onclick="managerReject('نور حسام ↔ رامي سليم')">✗ رفض</button>
+                </div>
+              </div>
+            </div>
+            <div class="approval-row">
+              <div class="urgency-dot urgency-med" style="margin-top:8px;"></div>
+              <div class="avatar av-green" style="width:34px;height:34px;font-size:11px;">سم</div>
+              <div class="approval-body">
+                <div class="approval-parties">
+                  <strong>سارة محمود</strong> <span class="arrow-icon">⇄</span> <strong>أحمد محمد</strong>
+                </div>
+                <div class="approval-shift">الأربعاء 14/5 · صبح 08:00–16:00</div>
+                <div class="approval-actions">
+                  <button class="btn btn-success btn-sm" onclick="managerApprove('سارة ↔ أحمد')">✓ موافق</button>
+                  <button class="btn btn-danger btn-sm" onclick="managerReject('سارة ↔ أحمد')">✗ رفض</button>
+                  <button class="btn btn-sm" onclick="openDetailModal('سارة محمود')">التفاصيل</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><div class="card-title">إحصائيات اليوم</div></div>
+          <div class="card-body" style="padding:16px;">
+            <div style="margin-bottom:14px;">
+              <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text2);margin-bottom:6px;">
+                <span>نسبة التغطية</span><span style="color:var(--green);font-weight:600;">91%</span>
+              </div>
+              <div style="height:6px;background:var(--bg4);border-radius:3px;overflow:hidden;">
+                <div style="width:91%;height:100%;background:var(--green);border-radius:3px;"></div>
+              </div>
+            </div>
+            <div style="margin-bottom:14px;">
+              <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text2);margin-bottom:6px;">
+                <span>شيفتات الصبح</span><span>32/35</span>
+              </div>
+              <div style="height:6px;background:var(--bg4);border-radius:3px;overflow:hidden;">
+                <div style="width:91%;height:100%;background:var(--accent);border-radius:3px;"></div>
+              </div>
+            </div>
+            <div style="margin-bottom:14px;">
+              <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text2);margin-bottom:6px;">
+                <span>شيفتات المسا</span><span>28/30</span>
+              </div>
+              <div style="height:6px;background:var(--bg4);border-radius:3px;overflow:hidden;">
+                <div style="width:93%;height:100%;background:var(--amber);border-radius:3px;"></div>
+              </div>
+            </div>
+            <div>
+              <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text2);margin-bottom:6px;">
+                <span>شيفتات الليل</span><span>18/20</span>
+              </div>
+              <div style="height:6px;background:var(--bg4);border-radius:3px;overflow:hidden;">
+                <div style="width:90%;height:100%;background:var(--red-border);border-radius:3px;"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- APPROVALS -->
+    <div class="page-section" id="page-approvals">
+      <div class="section-title">الموافقات</div>
+      <div class="section-sub">كل طلبات التبديل اللي محتاجة موافقتك</div>
+
+      <div class="page-tabs">
+        <button class="page-tab active" onclick="switchApprovalTab(this,'pending')">معلقة (3)</button>
+        <button class="page-tab" onclick="switchApprovalTab(this,'approved')">موافق عليها</button>
+        <button class="page-tab" onclick="switchApprovalTab(this,'rejected')">مرفوضة</button>
+      </div>
+
+      <div id="appr-pending">
+        <div class="card">
+          <div class="card-body">
+            <div class="approval-row">
+              <div class="urgency-dot urgency-high" style="margin-top:14px;"></div>
+              <div style="flex:1;">
+                <div class="approval-parties" style="margin-bottom:8px;flex-wrap:wrap;gap:8px;">
+                  <div style="display:flex;align-items:center;gap:8px;">
+                    <div class="avatar av-accent" style="width:34px;height:34px;font-size:11px;">نح</div>
+                    <div>
+                      <div style="font-size:13px;font-weight:500;">نور حسام</div>
+                      <div style="font-size:11px;color:var(--text3);">يعرض الشيفت</div>
+                    </div>
+                  </div>
+                  <span class="arrow-icon" style="font-size:20px;color:var(--text3);">⇄</span>
+                  <div style="display:flex;align-items:center;gap:8px;">
+                    <div class="avatar av-green" style="width:34px;height:34px;font-size:11px;">رس</div>
+                    <div>
+                      <div style="font-size:13px;font-weight:500;">رامي سليم</div>
+                      <div style="font-size:11px;color:var(--text3);">قبل التغطية</div>
+                    </div>
+                  </div>
+                  <span class="badge badge-red">عاجل</span>
+                  <span class="badge badge-blue">شيفت كامل</span>
+                </div>
+                <div style="font-size:12px;color:var(--text2);margin-bottom:10px;">
+                  📅 الجمعة 9 مايو 2026 · 00:00 – 08:00 · شيفت ليل · الدعم الفني<br>
+                  💬 ظرف صحي طارئ — رامي سليم يوم السبت فارغ كتعويض
+                </div>
+                <div class="approval-actions">
+                  <button class="btn btn-success" onclick="managerApprove('نور ↔ رامي')">✓ موافقة وإشعار الطرفين</button>
+                  <button class="btn btn-danger" onclick="managerReject('نور ↔ رامي')">✗ رفض</button>
+                  <button class="btn" onclick="openDetailModal('نور حسام')">📋 تفاصيل كاملة</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="approval-row">
+              <div class="urgency-dot urgency-med" style="margin-top:14px;"></div>
+              <div style="flex:1;">
+                <div class="approval-parties" style="margin-bottom:8px;flex-wrap:wrap;gap:8px;">
+                  <div style="display:flex;align-items:center;gap:8px;">
+                    <div class="avatar av-green" style="width:34px;height:34px;font-size:11px;">سم</div>
+                    <div>
+                      <div style="font-size:13px;font-weight:500;">سارة محمود</div>
+                      <div style="font-size:11px;color:var(--text3);">تعرض الشيفت</div>
+                    </div>
+                  </div>
+                  <span class="arrow-icon" style="font-size:20px;color:var(--text3);">⇄</span>
+                  <div style="display:flex;align-items:center;gap:8px;">
+                    <div class="avatar av-accent" style="width:34px;height:34px;font-size:11px;">أح</div>
+                    <div>
+                      <div style="font-size:13px;font-weight:500;">أحمد محمد</div>
+                      <div style="font-size:11px;color:var(--text3);">قبل التغطية</div>
+                    </div>
+                  </div>
+                  <span class="badge badge-blue">شيفت كامل</span>
+                </div>
+                <div style="font-size:12px;color:var(--text2);margin-bottom:10px;">
+                  📅 الأربعاء 14 مايو 2026 · 08:00 – 16:00 · شيفت صبح · العمليات<br>
+                  💬 إجازة عائلية مسبقة
+                </div>
+                <div class="approval-actions">
+                  <button class="btn btn-success" onclick="managerApprove('سارة ↔ أحمد')">✓ موافقة وإشعار الطرفين</button>
+                  <button class="btn btn-danger" onclick="managerReject('سارة ↔ أحمد')">✗ رفض</button>
+                  <button class="btn" onclick="openDetailModal('سارة محمود')">📋 تفاصيل</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="approval-row">
+              <div class="urgency-dot urgency-low" style="margin-top:14px;"></div>
+              <div style="flex:1;">
+                <div class="approval-parties" style="margin-bottom:8px;flex-wrap:wrap;gap:8px;">
+                  <div style="display:flex;align-items:center;gap:8px;">
+                    <div class="avatar av-amber" style="width:34px;height:34px;font-size:11px;">مع</div>
+                    <div>
+                      <div style="font-size:13px;font-weight:500;">محمد علي</div>
+                      <div style="font-size:11px;color:var(--text3);">يعرض جزء من الشيفت</div>
+                    </div>
+                  </div>
+                  <span class="arrow-icon" style="font-size:20px;color:var(--text3);">⇄</span>
+                  <div style="display:flex;align-items:center;gap:8px;">
+                    <div class="avatar av-red" style="width:34px;height:34px;font-size:11px;">كر</div>
+                    <div>
+                      <div style="font-size:13px;font-weight:500;">كريم رضا</div>
+                      <div style="font-size:11px;color:var(--text3);">قبل التغطية</div>
+                    </div>
+                  </div>
+                  <span class="badge badge-amber">جزئي</span>
+                </div>
+                <div style="font-size:12px;color:var(--text2);margin-bottom:10px;">
+                  📅 الخميس 15 مايو · 16:00 – 20:00 (4 ساعات) · الدعم
+                </div>
+                <div class="approval-actions">
+                  <button class="btn btn-success" onclick="managerApprove('محمد ↔ كريم')">✓ موافقة</button>
+                  <button class="btn btn-danger" onclick="managerReject('محمد ↔ كريم')">✗ رفض</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="appr-approved" style="display:none;">
+        <div class="card">
+          <div class="card-body">
+            <div class="approval-row">
+              <div class="urgency-dot" style="background:var(--green);margin-top:8px;"></div>
+              <div style="flex:1;">
+                <div style="font-size:13px;font-weight:500;margin-bottom:4px;">ياسمين عمر ⇄ أحمد محمد</div>
+                <div style="font-size:12px;color:var(--text2);">الخميس 2 مايو · 08:00–16:00 · وافق عليه المدير الساعة 9 صباحًا</div>
+              </div>
+              <span class="badge badge-green">مكتمل</span>
+            </div>
+            <div class="approval-row">
+              <div class="urgency-dot" style="background:var(--green);margin-top:8px;"></div>
+              <div style="flex:1;">
+                <div style="font-size:13px;font-weight:500;margin-bottom:4px;">عمر فاروق ⇄ أحمد محمد</div>
+                <div style="font-size:12px;color:var(--text2);">الأربعاء 28 أبريل · 16:00–00:00</div>
+              </div>
+              <span class="badge badge-green">مكتمل</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="appr-rejected" style="display:none;">
+        <div class="card">
+          <div class="card-body">
+            <div class="approval-row">
+              <div class="urgency-dot" style="background:var(--red);margin-top:8px;"></div>
+              <div style="flex:1;">
+                <div style="font-size:13px;font-weight:500;margin-bottom:4px;">أحمد محمد — شيفت الإثنين صبح</div>
+                <div style="font-size:12px;color:var(--text2);">20 أبريل · رُفض بسبب عدم اكتمال الطاقم</div>
+              </div>
+              <span class="badge badge-red">مرفوض</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TEAM -->
+    <div class="page-section" id="page-team">
+      <div class="section-title">الفريق</div>
+      <div class="section-sub">107 موظفين — عرض الحالة الحالية</div>
+
+      <div class="filter-row">
+        <button class="filter-chip on" onclick="toggleChip(this)">الكل</button>
+        <button class="filter-chip" onclick="toggleChip(this)">شيفت صبح</button>
+        <button class="filter-chip" onclick="toggleChip(this)">شيفت مسا</button>
+        <button class="filter-chip" onclick="toggleChip(this)">شيفت ليل</button>
+        <button class="filter-chip" onclick="toggleChip(this)">فارغ</button>
+        <div class="search-box">🔍 <input placeholder="ابحث باسم..."></div>
+      </div>
+
+      <div class="card">
+        <table class="tbl">
+          <thead><tr><th>الاسم</th><th>الشيفت الحالي</th><th>القسم</th><th>الحالة</th><th>طلبات معلقة</th></tr></thead>
+          <tbody>
+            <tr><td><div style="display:flex;align-items:center;gap:8px;"><div class="av-accent avatar" style="width:30px;height:30px;font-size:11px;">أح</div>أحمد محمد</div></td><td>08:00–16:00</td><td>العمليات</td><td><span class="badge badge-green">● نشط</span></td><td>2</td></tr>
+            <tr><td><div style="display:flex;align-items:center;gap:8px;"><div class="av-green avatar" style="width:30px;height:30px;font-size:11px;">سم</div>سارة محمود</div></td><td>08:00–16:00</td><td>العمليات</td><td><span class="badge badge-amber">⇄ طلب تبديل</span></td><td>1</td></tr>
+            <tr><td><div style="display:flex;align-items:center;gap:8px;"><div class="av-amber avatar" style="width:30px;height:30px;font-size:11px;">مع</div>محمد علي</div></td><td>16:00–00:00</td><td>الدعم</td><td><span class="badge badge-green">● نشط</span></td><td>1</td></tr>
+            <tr><td><div style="display:flex;align-items:center;gap:8px;"><div class="av-accent avatar" style="width:30px;height:30px;font-size:11px;">نح</div>نور حسام</div></td><td>00:00–08:00</td><td>الدعم</td><td><span class="badge badge-red">⚡ عاجل</span></td><td>1</td></tr>
+            <tr><td><div style="display:flex;align-items:center;gap:8px;"><div class="av-red avatar" style="width:30px;height:30px;font-size:11px;">كر</div>كريم رضا</div></td><td>12:00–16:00</td><td>المبيعات</td><td><span class="badge badge-green">● نشط</span></td><td>1</td></tr>
+            <tr><td><div style="display:flex;align-items:center;gap:8px;"><div class="av-green avatar" style="width:30px;height:30px;font-size:11px;">هم</div>هبة منصور</div></td><td>—</td><td>العمليات</td><td><span class="badge badge-gray">● فارغ</span></td><td>1</td></tr>
+            <tr><td><div style="display:flex;align-items:center;gap:8px;"><div class="av-amber avatar" style="width:30px;height:30px;font-size:11px;">رس</div>رامي سليم</div></td><td>08:00–16:00</td><td>الدعم</td><td><span class="badge badge-blue">⇄ قبل تغطية</span></td><td>0</td></tr>
+            <tr><td colspan="5" style="text-align:center;color:var(--text3);padding:14px;font-size:12px;">+ 100 موظف آخر · استخدم البحث للعثور على أي شخص</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- MGR CALENDAR -->
+    <div class="page-section" id="page-mgr-calendar">
+      <div class="section-title">التقويم الكامل</div>
+      <div class="section-sub">نظرة شاملة على كل الشيفتات والفراغات</div>
+      <div class="card">
+        <div class="card-header"><div class="card-title">مايو 2026 — عرض الفريق كامل</div></div>
+        <div style="padding:20px;text-align:center;color:var(--text3);">
+          <div style="font-size:40px;margin-bottom:10px;">📊</div>
+          <div>التقويم الكامل للـ 107 موظفين</div>
+          <div style="font-size:12px;margin-top:6px;">في التطبيق الحقيقي هيظهر هنا Gantt chart كامل</div>
+          <button class="btn btn-primary" style="margin-top:14px;" onclick="showPage('mgr-dashboard')">رجوع للوحة</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- REPORTS -->
+    <div class="page-section" id="page-reports">
+      <div class="section-title">التقارير</div>
+      <div class="section-sub">إحصائيات وتحليلات التبديلات</div>
+      <div class="stats-grid">
+        <div class="stat-card blue"><div class="stat-label">تبديلات مايو</div><div class="stat-val">34</div><div class="stat-sub">↑ 12% عن أبريل</div></div>
+        <div class="stat-card green"><div class="stat-label">نسبة القبول</div><div class="stat-val">87%</div><div class="stat-sub">من الطلبات</div></div>
+        <div class="stat-card amber"><div class="stat-label">متوسط وقت الاستجابة</div><div class="stat-val">2.4</div><div class="stat-sub">ساعة</div></div>
+        <div class="stat-card red"><div class="stat-label">شيفتات غير مغطاة</div><div class="stat-val">4</div><div class="stat-sub">هذا الشهر</div></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-title">أكثر الموظفين تبديلًا</div></div>
+        <table class="tbl">
+          <thead><tr><th>#</th><th>الاسم</th><th>طلبات أرسلها</th><th>طلبات قبلها</th><th>معدل القبول</th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td>أحمد محمد</td><td>8</td><td>6</td><td><span class="badge badge-green">75%</span></td></tr>
+            <tr><td>2</td><td>سارة محمود</td><td>5</td><td>9</td><td><span class="badge badge-green">94%</span></td></tr>
+            <tr><td>3</td><td>نور حسام</td><td>6</td><td>4</td><td><span class="badge badge-amber">60%</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</main>
+</div>
+
+<!-- ─── MODAL: DETAIL ─── -->
+<div class="modal-overlay" id="detail-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>تفاصيل طلب التبديل</h3>
+      <button class="modal-close" onclick="closeModal('detail-modal')">×</button>
+    </div>
+    <div class="modal-body" id="modal-body-content">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+        <div class="avatar av-accent" style="width:44px;height:44px;">نح</div>
+        <div>
+          <div style="font-size:15px;font-weight:600;" id="modal-name">نور حسام</div>
+          <div style="font-size:12px;color:var(--text3);">الدعم الفني · شيفت ليل</div>
+        </div>
+        <span class="badge badge-red" style="margin-right:auto;">عاجل</span>
+      </div>
+      <div style="background:var(--bg3);border-radius:var(--radius);padding:14px;margin-bottom:14px;">
+        <div style="font-size:12px;color:var(--text3);margin-bottom:8px;font-weight:600;text-transform:uppercase;">تفاصيل الشيفت</div>
+        <div style="font-size:13px;line-height:2;">
+          📅 الجمعة 9 مايو 2026<br>
+          ⏰ 00:00 – 08:00 (8 ساعات)<br>
+          🏢 قسم الدعم الفني<br>
+          📝 السبب: ظرف صحي طارئ
+        </div>
+      </div>
+      <div style="background:var(--bg3);border-radius:var(--radius);padding:14px;">
+        <div style="font-size:12px;color:var(--text3);margin-bottom:8px;font-weight:600;text-transform:uppercase;">الأوقات الفارغة للتبديل</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <span class="badge badge-green">السبت 10/5 — أي وقت</span>
+          <span class="badge badge-green">الأحد 11/5 — صبح</span>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-success" onclick="managerApprove('نور ↔ رامي');closeModal('detail-modal')">✓ موافقة</button>
+      <button class="btn btn-danger" onclick="managerReject('نور ↔ رامي');closeModal('detail-modal')">✗ رفض</button>
+      <button class="btn" onclick="closeModal('detail-modal')">إغلاق</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── MODAL: POST ─── -->
+<div class="modal-overlay" id="post-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>عرض شيفت للتبديل</h3>
+      <button class="modal-close" onclick="closeModal('post-modal')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">الشيفت</label>
+        <input type="text" class="form-input" id="quick-shift-name" readonly style="background:var(--bg4);">
+      </div>
+      <div class="form-group">
+        <label class="form-label">السبب</label>
+        <textarea class="form-textarea" placeholder="أذكر سبب طلب التبديل..."></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">الأولوية</label>
+        <select class="form-select">
+          <option>عادية</option><option>متوسطة</option><option>عاجلة</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" onclick="submitPost();closeModal('post-modal')">نشر للفريق</button>
+      <button class="btn" onclick="closeModal('post-modal')">إلغاء</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOASTS -->
+<div class="toast-container" id="toast-container"></div>
+
+<script>
+let currentMode = 'employee';
+let notifOpen = false;
+let approvalTab = 'pending';
+
+function setMode(mode) {
+  currentMode = mode;
+  document.getElementById('mode-emp').classList.toggle('active', mode==='employee');
+  document.getElementById('mode-mgr').classList.toggle('active', mode==='manager');
+  document.getElementById('emp-nav').style.display = mode==='employee' ? 'block' : 'none';
+  document.getElementById('mgr-nav').style.display = mode==='manager' ? 'block' : 'none';
+
+  if(mode==='manager') {
+    document.getElementById('sidebar-name').textContent = 'مصطفى إبراهيم';
+    document.getElementById('sidebar-role').textContent = 'مدير الفريق';
+    showPage('mgr-dashboard');
+    toast('info','مرحبًا بك في لوحة المدير');
+  } else {
+    document.getElementById('sidebar-name').textContent = 'أحمد محمد';
+    document.getElementById('sidebar-role').textContent = 'موظف · شيفت صبح';
+    showPage('dashboard');
+    toast('info','رجعت لوضع الموظف');
+  }
+}
+
+const pageTitles = {
+  'dashboard':'لوحة التحكم','myshifts':'شيفتاتي','requests':'طلبات التبديل',
+  'calendar':'التقويم','post':'نشر طلب تبديل','history':'السجل',
+  'mgr-dashboard':'لوحة المدير','approvals':'الموافقات','team':'الفريق',
+  'mgr-calendar':'التقويم الكامل','reports':'التقارير'
+};
+
+function showPage(name) {
+  document.querySelectorAll('.page-section').forEach(s=>s.classList.remove('active'));
+  const sec = document.getElementById('page-'+name);
+  if(sec) sec.classList.add('active');
+  document.getElementById('page-title').textContent = pageTitles[name] || name;
+
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  const nav = document.getElementById('nav-'+name);
+  if(nav) nav.classList.add('active');
+
+  if(notifOpen) toggleNotif();
+}
+
+function toggleNotif() {
+  notifOpen = !notifOpen;
+  document.getElementById('notif-panel').classList.toggle('open', notifOpen);
+}
+
+function clearNotifs() {
+  document.getElementById('notif-list').innerHTML = '<div class="empty-state"><div class="empty-icon">🔔</div>لا توجد إشعارات جديدة</div>';
+  document.getElementById('notif-count').style.display = 'none';
+  toast('success','تم مسح كل الإشعارات');
+}
+
+function goToRequests() {
+  toggleNotif();
+  showPage(currentMode==='manager'?'approvals':'requests');
+}
+
+function toggleChip(el) {
+  el.closest('.filter-row').querySelectorAll('.filter-chip').forEach(c=>c.classList.remove('on'));
+  el.classList.add('on');
+}
+
+function acceptSwap(name, shift) {
+  if(confirm(`هل تقبل التبديل مع ${name} في ${shift}؟`)) {
+    const badge = document.getElementById('nav-badge-req');
+    let c = parseInt(badge.textContent)-1;
+    badge.textContent = c; if(c<=0) badge.style.display='none';
+    toast('success',`قبلت التبديل مع ${name} · في انتظار موافقة المدير`);
+    simulateNotif(`${name} قبل طلب تبديلك — في انتظار موافقة المدير`,'green');
+  }
+}
+
+function managerApprove(parties) {
+  const badge = document.getElementById('nav-badge-appr');
+  let c = parseInt(badge.textContent)-1;
+  badge.textContent = c; if(c<=0) badge.style.display='none';
+  toast('success',`✓ تمت الموافقة على تبديل ${parties} · تم إشعار الطرفين`);
+  simulateNotif(`وافق المدير على تبديل ${parties}`,'accent');
+}
+
+function managerReject(parties) {
+  toast('warning',`تم رفض تبديل ${parties} · تم إشعار الطرفين`,'warning');
+}
+
+function openDetailModal(name) {
+  document.getElementById('modal-name').textContent = name;
+  document.getElementById('detail-modal').classList.add('open');
+}
+
+function openPostModal(day, time) {
+  document.getElementById('quick-shift-name').value = `${day} — ${time}`;
+  document.getElementById('post-modal').classList.add('open');
+}
+
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+}
+
+function submitPost() {
+  toast('success','📢 تم نشر الطلب للفريق كامل (107 موظفين) · ستصلك إشعارات بالردود');
+  simulateNotif('نشرت طلب تبديل جديد · في انتظار الردود من الفريق','accent');
+  if(currentMode==='employee') showPage('dashboard');
+}
+
+function updatePostForm() {
+  const v = document.getElementById('post-type').value;
+  document.getElementById('partial-section').style.display = v==='partial'?'block':'none';
+}
+
+function switchApprovalTab(el, tab) {
+  document.querySelectorAll('.page-tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  ['pending','approved','rejected'].forEach(t=>{
+    const el2 = document.getElementById('appr-'+t);
+    if(el2) el2.style.display = t===tab?'block':'none';
+  });
+}
+
+function simulateNotif(text, color) {
+  const list = document.getElementById('notif-list');
+  const colors = {green:'var(--green)',accent:'var(--accent)',amber:'var(--amber)'};
+  const item = document.createElement('div');
+  item.className = 'notif-item unread';
+  item.innerHTML = `<div class="notif-dot" style="background:${colors[color]||colors.accent}"></div><div><div class="notif-text">${text}</div><div class="notif-time">الآن</div></div>`;
+  list.prepend(item);
+  const cnt = document.getElementById('notif-count');
+  cnt.style.display='flex';
+  cnt.textContent = parseInt(cnt.textContent||0)+1;
+}
+
+function toast(type, msg) {
+  const icons = {success:'✓',info:'ℹ',warning:'⚠'};
+  const c = document.getElementById('toast-container');
+  const t = document.createElement('div');
+  t.className = `toast ${type}`;
+  t.innerHTML = `<span class="toast-icon">${icons[type]||'✓'}</span><span>${msg}</span>`;
+  c.appendChild(t);
+  setTimeout(()=>{t.style.opacity='0';t.style.transition='opacity 0.3s';setTimeout(()=>t.remove(),300);},4000);
+}
+
+function updateClock() {
+  const now = new Date();
+  document.getElementById('current-time').textContent =
+    now.toLocaleTimeString('ar-EG',{hour:'2-digit',minute:'2-digit'}) + ' — الثلاثاء 5 مايو 2026';
+}
+updateClock(); setInterval(updateClock, 30000);
+
+document.addEventListener('click', e => {
+  if(notifOpen && !e.target.closest('#notif-panel') && !e.target.closest('#notif-btn')) {
+    toggleNotif();
+  }
+});
+
+document.addEventListener('keydown', e => {
+  if(e.key==='Escape') {
+    document.querySelectorAll('.modal-overlay').forEach(m=>m.classList.remove('open'));
+    if(notifOpen) toggleNotif();
+  }
+});
+</script>
+</body>
+</html>
